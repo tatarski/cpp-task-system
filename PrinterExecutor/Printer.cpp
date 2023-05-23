@@ -36,5 +36,5 @@ TaskSystem::Executor* ExecutorConstructorImpl(std::unique_ptr<TaskSystem::Task> 
 }
 
 IMPLEMENT_ON_INIT() {
-    ts.RegisterExecutor("printer", &ExecutorConstructorImpl);
+    ts.Register("printer", &ExecutorConstructorImpl);
 }

@@ -253,5 +253,5 @@ TaskSystem::Executor* ExecutorConstructorImpl(std::unique_ptr<TaskSystem::Task> 
 }
 
 IMPLEMENT_ON_INIT() {
-	ts.RegisterExecutor("raytracer", &ExecutorConstructorImpl);
+	ts.Register("raytracer", &ExecutorConstructorImpl);
 }

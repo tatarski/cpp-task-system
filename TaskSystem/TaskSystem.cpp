@@ -6,6 +6,13 @@
 
 namespace TaskSystem {
 
+TaskSystemExecutor* TaskSystemExecutor::self = nullptr;
+
+TaskSystemExecutor &TaskSystemExecutor::GetInstance() {
+    return *self;
+}
+
+
 bool TaskSystemExecutor::LoadLibrary(const std::string &path) {
     void *handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
     assert(handle);

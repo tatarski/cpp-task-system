@@ -5,6 +5,10 @@
 
 namespace TaskSystem {
 
+/**
+ * @brief Base class providing arguments for Executor
+ *
+ */
 struct Task {
     virtual std::optional<int> GetIntParam(const std::string &name) const { return std::nullopt; }
     virtual std::optional<std::string> GetStringParam(const std::string &name) const { return std::nullopt; }

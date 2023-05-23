@@ -1,6 +1,8 @@
 #include "TaskSystem.h"
 
 #include <cassert>
+#include <chrono>
+#include <thread>
 
 using namespace TaskSystem;
 
@@ -34,18 +36,45 @@ struct RaytracerParams : Task {
     virtual std::string GetExecutorName() const { return "raytracer"; }
 };
 
-int main(int argc, char *argv[]) {
+void testRenderer() {
     TaskSystemExecutor &ts = TaskSystemExecutor::GetInstance();
 
-    // ts.LoadLibrary("libPrinterExecutor.dylib");
-    // std::unique_ptr<Task> task = std::make_unique<PrinterParams>(100, 5);
-
-    const bool libLoaded = ts.LoadLibrary("/Users/poseidon4o/workspace/task-system-build/ts_executors/libRaytracerExecutor.dylib");
+    const bool libLoaded = ts.LoadLibrary("libRaytracerExecutor.dylib");
     assert(libLoaded);
     std::unique_ptr<Task> task = std::make_unique<RaytracerParams>("Example");
 
-    TaskSystemExecutor::TaskID id = ts.ScheduleTask(std::move(task));
+    TaskSystemExecutor::TaskID id = ts.ScheduleTask(std::move(task), 1);
     ts.WaitForTask(id);
+}
+
+void testPrinter() {
+    TaskSystemExecutor &ts = TaskSystemExecutor::GetInstance();
+
+    const bool libLoaded = ts.LoadLibrary("libPrinterExecutor.dylib");
+    assert(libLoaded);
+
+    // two instances of the same task
+    std::unique_ptr<Task> p1 = std::make_unique<PrinterParams>(100, 5);
+    std::unique_ptr<Task> p2 = std::make_unique<PrinterParams>(100, 5);
+
+    // give some time for the first task to execute
+    TaskSystemExecutor::TaskID id1 = ts.ScheduleTask(std::move(p1), 10);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
+    // insert bigger priority task, TaskSystem should switch to it
+    TaskSystemExecutor::TaskID id2 = ts.ScheduleTask(std::move(p2), 20);
+
+    ts.OnTaskCompleted(id1, [](TaskSystemExecutor::TaskID id) {
+        printf("Task 1 finished\n");
+    });
+    ts.WaitForTask(id2);
+    ts.WaitForTask(id1);
+}
+
+int main(int argc, char *argv[]) {
+    TaskSystemExecutor::Init(4);
+
+    testPrinter();
 
     return 0;
 }
