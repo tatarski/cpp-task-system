@@ -6,18 +6,20 @@
 #include <map>
 #include <functional>
 
-struct TaskSystem {
+namespace TaskSystem {
+
+struct TaskSystemExecutor {
 private:
-    TaskSystem() = default;
+    TaskSystemExecutor() = default;
     void Register(const std::string &executorName, ExecutorConstructor constructor) {
         executors[executorName] = constructor;
     }
 public:
-    TaskSystem(const TaskSystem &) = delete;
-    TaskSystem &operator=(const TaskSystem &) = delete;
+    TaskSystemExecutor(const TaskSystemExecutor &) = delete;
+    TaskSystemExecutor &operator=(const TaskSystemExecutor &) = delete;
 
-    static TaskSystem &GetInstance() {
-        static TaskSystem ts;
+    static TaskSystemExecutor &GetInstance() {
+        static TaskSystemExecutor ts;
         return ts;
     }
 
@@ -43,7 +45,9 @@ public:
         GetInstance().Register(executorName, constructor);
     }
 
-    void LoadLibrary(const std::string &path);
+    bool LoadLibrary(const std::string &path);
 
     std::map<std::string, ExecutorConstructor> executors;
+};
+
 };

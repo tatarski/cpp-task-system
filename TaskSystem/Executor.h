@@ -3,6 +3,7 @@
 #include "Task.h"
 
 #include <memory>
+namespace TaskSystem {
 
 struct Executor {
     enum ExecStatus {
@@ -17,8 +18,9 @@ struct Executor {
 };
 
 typedef Executor*(*ExecutorConstructor)(std::unique_ptr<Task> taskToExecute);
+struct TaskSystemExecutor;
+typedef void (*OnLibraryInitPtr)(TaskSystemExecutor &);
 
-struct TaskSystem;
-typedef void (*OnLibraryInitPtr)(TaskSystem &);
+};
 
-#define IMPLEMENT_ON_INIT() extern "C" void OnLibraryInit(TaskSystem &ts)
+#define IMPLEMENT_ON_INIT() extern "C" void OnLibraryInit(TaskSystem::TaskSystemExecutor &ts)

@@ -6,8 +6,8 @@
 #include <thread>
 
 
-struct Printer : Executor {
-    Printer(std::unique_ptr<Task> taskToExecute) : Executor(std::move(taskToExecute)) {
+struct Printer : TaskSystem::Executor {
+    Printer(std::unique_ptr<TaskSystem::Task> taskToExecute) : Executor(std::move(taskToExecute)) {
         max = task->GetIntParam("max").value();
         sleepMs = task->GetIntParam("sleep").value();
     }
@@ -31,11 +31,9 @@ struct Printer : Executor {
     int sleepMs = 0;
 };
 
-Executor* ExecutorConstructorImpl(std::unique_ptr<Task> taskToExecute) {
+TaskSystem::Executor* ExecutorConstructorImpl(std::unique_ptr<TaskSystem::Task> taskToExecute) {
     return new Printer(std::move(taskToExecute));
 }
-
-struct TaskSystem;
 
 IMPLEMENT_ON_INIT() {
     ts.RegisterExecutor("printer", &ExecutorConstructorImpl);
