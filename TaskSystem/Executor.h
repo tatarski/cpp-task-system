@@ -47,4 +47,11 @@ struct TaskSystemExecutor;
  *
  */
 typedef void (*OnLibraryInitPtr)(TaskSystem::TaskSystemExecutor &);
-#define IMPLEMENT_ON_INIT() extern "C" void OnLibraryInit(TaskSystem::TaskSystemExecutor &ts)
+
+#if defined(_WIN32) || defined(_WIN64)
+#define DLL_EXPORT __declspec(dllexport)
+#else
+#define DLL_EXPORT
+#endif
+
+#define IMPLEMENT_ON_INIT() extern "C" DLL_EXPORT void OnLibraryInit(TaskSystem::TaskSystemExecutor &ts)

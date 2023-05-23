@@ -49,13 +49,16 @@ void testRenderer() {
 
 void testPrinter() {
     TaskSystemExecutor &ts = TaskSystemExecutor::GetInstance();
-
+#if defined(_WIN32) || defined(_WIN64)
+    const bool libLoaded = ts.LoadLibrary("PrinterExecutor.dll"); 
+#elif defined(__APPLE__)
     const bool libLoaded = ts.LoadLibrary("libPrinterExecutor.dylib");
+#endif
     assert(libLoaded);
 
     // two instances of the same task
-    std::unique_ptr<Task> p1 = std::make_unique<PrinterParams>(100, 5);
-    std::unique_ptr<Task> p2 = std::make_unique<PrinterParams>(100, 5);
+    std::unique_ptr<Task> p1 = std::make_unique<PrinterParams>(100, 25);
+    std::unique_ptr<Task> p2 = std::make_unique<PrinterParams>(100, 25);
 
     // give some time for the first task to execute
     TaskSystemExecutor::TaskID id1 = ts.ScheduleTask(std::move(p1), 10);
