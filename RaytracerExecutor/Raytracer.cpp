@@ -130,7 +130,7 @@ struct Scene {
 				const std::string resultImage = name + ".png";
 				const PNGImage &png = image.createPNGData();
 				const int success = stbi_write_png(resultImage.c_str(), width, height, PNGImage::componentCount(), png.data.data(), sizeof(PNGImage::Pixel) * width);
-				assert(success == 0);
+				assert(success == 1);
 				return true;
 			}
 		}
