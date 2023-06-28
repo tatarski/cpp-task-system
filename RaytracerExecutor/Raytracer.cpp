@@ -109,6 +109,14 @@ struct Scene {
 
 		int &idx = perThreadProgress[threadIndex];
 
+		if (idx >= width * height) {
+			if (completedThreads.load() == threadCount) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+
 		const int r = idx / width;
 		const int c = idx % width;
 
