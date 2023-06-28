@@ -20,6 +20,7 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
+#include <atomic>
 
 /// Camera description, can be pointed at point, used to generate screen rays
 struct Camera {

@@ -4,7 +4,7 @@
 
 #include <chrono>
 #include <thread>
-
+#include <atomic>
 
 struct Printer : TaskSystem::Executor {
     Printer(std::unique_ptr<TaskSystem::Task> taskToExecute) : Executor(std::move(taskToExecute)) {

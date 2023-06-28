@@ -4,6 +4,7 @@
 #include <chrono>
 #include <thread>
 
+
 using namespace TaskSystem;
 
 struct PrinterParams : Task {
@@ -50,9 +51,11 @@ void testRenderer() {
 void testPrinter() {
     TaskSystemExecutor &ts = TaskSystemExecutor::GetInstance();
 #if defined(_WIN32) || defined(_WIN64)
-    const bool libLoaded = ts.LoadLibrary("PrinterExecutor.dll"); 
+    const bool libLoaded = ts.LoadLibrary("PrinterExecutor.dll");
 #elif defined(__APPLE__)
     const bool libLoaded = ts.LoadLibrary("libPrinterExecutor.dylib");
+#elif defined(__linux__)
+    const bool libLoaded = ts.LoadLibrary("libPrinterExecutor.so");
 #endif
     assert(libLoaded);
 
