@@ -1,6 +1,7 @@
 #include "TaskSystem.h"
-
 #include <cassert>
+#include<iostream>
+#include <shared_mutex>
 
 #if defined(_WIN32) || defined(_WIN64)
 #define USE_WIN
@@ -11,36 +12,41 @@
 #include <dlfcn.h>
 #endif
 
+typedef TaskSystem::TaskSystemExecutor::TaskID TaskID;
+
+
 namespace TaskSystem {
 
-TaskSystemExecutor* TaskSystemExecutor::self = nullptr;
+	TaskSystemExecutor* TaskSystemExecutor::self = nullptr;
 
-TaskSystemExecutor &TaskSystemExecutor::GetInstance() {
-    return *self;
-}
+	TaskSystemExecutor& TaskSystemExecutor::GetInstance() {
+		if (!self) {
+			throw std::exception("Task System Is Not Instanced");
+		}
+		return *self;
+	}
 
-bool TaskSystemExecutor::LoadLibrary(const std::string &path) {
+	bool TaskSystemExecutor::LoadLibrary(const std::string& path) {
 #ifdef USE_WIN
-    HMODULE handle = LoadLibraryA(path.c_str());
+		HMODULE handle = LoadLibraryA(path.c_str());
 #else
-    void *handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
+		void* handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
 #endif
-    assert(handle);
-    if (handle) {
-        OnLibraryInitPtr initLib =
+		assert(handle);
+		if (handle) {
+			OnLibraryInitPtr initLib =
 #ifdef USE_WIN
-            (OnLibraryInitPtr)GetProcAddress(handle, "OnLibraryInit");
+			(OnLibraryInitPtr)GetProcAddress(handle, "OnLibraryInit");
 #else
-            (OnLibraryInitPtr)dlsym(handle, "OnLibraryInit");
+				(OnLibraryInitPtr)dlsym(handle, "OnLibraryInit");
 #endif
-        assert(initLib);
-        if (initLib) {
-            initLib(*this);
-            printf("Initialized [%s] executor\n", path.c_str());
-            return true;
-        }
-    }
-    return false;
-}
-
+			assert(initLib);
+			if (initLib) {
+				initLib(*this);
+				printf("Initialized [%s] executor\n", path.c_str());
+				return true;
+			}
+		}
+		return false;
+	}
 };

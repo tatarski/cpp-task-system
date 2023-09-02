@@ -10,6 +10,7 @@ struct Printer : TaskSystem::Executor {
     Printer(std::unique_ptr<TaskSystem::Task> taskToExecute) : Executor(std::move(taskToExecute)) {
         max = task->GetIntParam("max").value();
         sleepMs = task->GetIntParam("sleep").value();
+        taskId = task->GetIntParam("taskId").value();
     }
 
     virtual ~Printer() {}
@@ -21,7 +22,7 @@ struct Printer : TaskSystem::Executor {
             return ExecStatus::ES_Stop;
         }
 
-        printf("Printer [%d/%d]: %d\n", threadIndex, threadCount, myValue);
+        printf("TaskID: %d  - Printer [%d/%d]: %d\n", taskId, threadIndex, threadCount, myValue);
         std::this_thread::sleep_for(std::chrono::milliseconds(sleepMs));
         return ExecStatus::ES_Continue;
     };
@@ -29,6 +30,7 @@ struct Printer : TaskSystem::Executor {
     std::atomic<int> current = 0;
     int max = 0;
     int sleepMs = 0;
+    int taskId = 0;
 };
 
 TaskSystem::Executor* ExecutorConstructorImpl(std::unique_ptr<TaskSystem::Task> taskToExecute) {
@@ -36,5 +38,6 @@ TaskSystem::Executor* ExecutorConstructorImpl(std::unique_ptr<TaskSystem::Task> 
 }
 
 IMPLEMENT_ON_INIT() {
+
     ts.Register("printer", &ExecutorConstructorImpl);
 }
