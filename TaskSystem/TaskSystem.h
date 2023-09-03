@@ -12,6 +12,11 @@
 #include <cassert>
 #include<iostream>
 namespace TaskSystem {
+	/// <summary>
+	/// Blocking logging function.
+	/// </summary>
+	/// <param name="msg"></param>
+	/// <param name="tid"></param>
 	static void logThread_(std::string msg, int tid) {
 		static std::mutex m;
 		std::unique_lock<std::mutex> printLock(m);
@@ -114,7 +119,10 @@ namespace TaskSystem {
 		virtual void Register(const std::string& executorName, ExecutorConstructor constructor) {
 			executorConstructors[executorName] = constructor;
 		}
-
+		
+		/// <summary>
+		/// Stop worker threads. Delete instance of TaskSystemExecutor.
+		/// </summary>
 		virtual void Terminate() {};
 
 	protected:

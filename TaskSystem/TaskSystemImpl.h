@@ -39,16 +39,31 @@ namespace TaskSystem {
 			TaskSystemExecutor::self = new TaskSystemExecutorImpl(threadCount);
 		}
 
+		/// <summary>
+		/// Schedule task with given priority.
+		/// Create executor instance and push task to task priority queue and task map.
+		/// </summary>
+		/// <returns></returns>
 		TaskID ScheduleTask(std::unique_ptr<Task> task, int priority) override;
 
+		/// <summary>
+		/// Wait for task with given taskid to finish. A task is finished when callbacksComplete is true.
+		/// </summary>
+		/// <param name="task"></param>
 		void WaitForTask(TaskID task) override;
 
+		/// <summary>
+		/// Register a callback to be called when normal task steps have been executed.
+		/// </summary>
+		/// <param name="task"></param>
+		/// <param name="callback"></param>
 		void OnTaskCompleted(TaskID task, std::function<void(TaskID)>&& callback) override;
 
 		void Register(const std::string& executorName, ExecutorConstructor constructor) override;
 
 		/// <summary>
-		/// Set stop threads and wait for them to exit
+		/// Set stop threads and wait for them to exit.
+		/// Delete instance of TaskSystemExecutorImpl.
 		/// </summary>
 		void Terminate() override;
 
@@ -139,6 +154,13 @@ namespace TaskSystem {
 		std::vector<std::thread> threads;
 
 		std::atomic<bool> terminateThreads = false;
+
+		// State 0 = work
+		// State 1 = sleep
+		// State 3 = terminate
+		/*std::atomic<int> threadState = 0;
+		std::condition_variable */
+
 
 		friend struct CallBackExecutor;
 	};

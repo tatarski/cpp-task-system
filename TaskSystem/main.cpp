@@ -44,56 +44,67 @@ struct RaytracerParams : Task {
 void testRenderer() {
     TaskSystemExecutor &ts = TaskSystemExecutor::GetInstance();
 
-    TaskSystem::TS_LOAD_LIBARY("PrinterExecutor", ts);
+    TaskSystem::TS_LOAD_LIBARY("RaytracerExecutor", ts);
 
     std::unique_ptr<Task> task = std::make_unique<RaytracerParams>("Example");
 
     TaskSystemExecutor::TaskID id = ts.ScheduleTask(std::move(task), 1);
+    ts.OnTaskCompleted(id, [](TaskSystemExecutor::TaskID id) {
+        printf("Task finished:%d\n", id.id);
+        });
     ts.WaitForTask(id);
+    //ts.Terminate();
 }
 
 void testPrinter() {
     TaskSystemExecutor &ts = TaskSystemExecutor::GetInstance();
     TaskSystem::TS_LOAD_LIBARY("PrinterExecutor", ts);
 
-    // two instances of the same task
-    std::unique_ptr<Task> p1 = std::make_unique<PrinterParams>(10, 1000, 1);
-    std::unique_ptr<Task> p2 = std::make_unique<PrinterParams>(10, 300, 2);
-    std::unique_ptr<Task> p3 = std::make_unique<PrinterParams>(5, 2000, 3);
+    std::unique_ptr<Task> p1 = std::make_unique<PrinterParams>(300, 1, 1);
+    std::unique_ptr<Task> p2 = std::make_unique<PrinterParams>(20, 500, 2);
 
-    // give some time for the first task to execute
-    TaskSystemExecutor::TaskID id1 = ts.ScheduleTask(std::move(p1), 9);
-    //std::this_thread::sleep_for(std::chrono::milliseconds(400));
+    // Schedule low priority task
+    TaskSystemExecutor::TaskID id1 = ts.ScheduleTask(std::move(p1), 10);
 
-    //// insert bigger priority task, TaskSystem should switch to it
-    TaskSystemExecutor::TaskID id2 = ts.ScheduleTask(std::move(p2), 99);
-    //std::this_thread::sleep_for(std::chrono::milliseconds(400));
+    // Wait some time and schedule higher priority task - task system starts executing it.
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    TaskSystemExecutor::TaskID id2 = ts.ScheduleTask(std::move(p2), 20);
 
-    ts.OnTaskCompleted(id1, [](TaskSystemExecutor::TaskID id) {
-        printf("Task 1 finished\n");
-    });
-    
+    // Register task 2 callbacks
     ts.OnTaskCompleted(id2, [](TaskSystemExecutor::TaskID id) {
-        printf("Task 2 finished\n");
+        printf("Task 2 finished 1 id:%d\n", id.id);
+    });
+    ts.OnTaskCompleted(id2, [](TaskSystemExecutor::TaskID id) {
+        printf("Task 2 finished 2 id: %d\n", id.id);
     });
 
-    //std::this_thread::sleep_for(std::chrono::milliseconds(60000));
-    //return;
-    /*ts.WaitForTask(id3);*/
+    // Schedule task 3 after task 2 finishes.
+    // TODO: no real way to wait for task3 once it has been scheduled in task2 callback
+    ts.OnTaskCompleted(id2, [&ts](TaskSystemExecutor::TaskID id) {
+        printf("Task 2 Finish: Scheduling task 3 id: %d\n", id.id);
+        std::unique_ptr<Task> p3 = std::make_unique<PrinterParams>(5, 3000, 3);
+        ts.ScheduleTask(std::move(p3), 200);
+});
+    
+    ts.OnTaskCompleted(id1, [](TaskSystemExecutor::TaskID id) {
+        printf("Task 1 finished id: %d\n", id.id);
+    });
+
 
     ts.WaitForTask(id1);
     ts.WaitForTask(id2);
 
-    TaskSystemExecutor::TaskID id3 = ts.ScheduleTask(std::move(p3), 999);
-    ts.WaitForTask(id3);
-
-    ts.Terminate();
+    //ts.Terminate();
 }
 
 int main(int argc, char *argv[]) {
+    // Init task system implementation
     TaskSystemExecutorImpl::Init(4);
 
     testPrinter();
 
+    testRenderer();
+
+    TaskSystemExecutor::GetInstance().Terminate();
     return 0;
 }
