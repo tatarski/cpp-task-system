@@ -80,11 +80,12 @@ void testPrinter() {
 
     // Schedule task 3 after task 2 finishes.
     // TODO: no real way to wait for task3 once it has been scheduled in task2 callback
-    ts.OnTaskCompleted(id2, [&ts](TaskSystemExecutor::TaskID id) {
+    // Possible to wait in worker?
+    /*ts.OnTaskCompleted(id2, [&ts](TaskSystemExecutor::TaskID id) {
         printf("Task 2 Finish: Scheduling task 3 id: %d\n", id.id);
         std::unique_ptr<Task> p3 = std::make_unique<PrinterParams>(5, 3000, 3);
         ts.ScheduleTask(std::move(p3), 200);
-});
+    });*/
     
     ts.OnTaskCompleted(id1, [](TaskSystemExecutor::TaskID id) {
         printf("Task 1 finished id: %d\n", id.id);
@@ -99,11 +100,11 @@ void testPrinter() {
 
 int main(int argc, char *argv[]) {
     // Init task system implementation
-    TaskSystemExecutorImpl::Init(4);
+    TaskSystemExecutorImpl::Init(1);
 
     testPrinter();
 
-    testRenderer();
+    //testRenderer();
 
     TaskSystemExecutor::GetInstance().Terminate();
     return 0;

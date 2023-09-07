@@ -48,7 +48,7 @@ namespace TaskSystem {
 			logThread("Unlocking Task Map Write Lock.", 999999);
 		}
 		
-		// Insert task context into task priority queue
+		// Insert task context into task priority queue. Set cur_executed_task
 		{
 			logThread("Trying to lock Task PQ Write Lock.", 999999);
 			std::unique_lock<std::shared_mutex> taskPQWriteLock(taskPQMutex);
@@ -163,6 +163,7 @@ namespace TaskSystem {
 
 				// Acquiring new task with highest priority
 				context = taskPQ.top();
+				logThread("Unlock PQ Read Lock.", tid);
 			}
 
 			// Execute step from current task context
@@ -172,6 +173,7 @@ namespace TaskSystem {
 				// Task has completed and should be removed from priority queue and task map
 				
 				// Remove task from task priority queue
+				// Set cur_executed task to be priority queue top or nullptr
 				{
 					logThread("Task has completed. Trying to lock PQ Write Lock.", tid);
 					std::unique_lock<std::shared_mutex> pqWriteLock(taskPQMutex);
@@ -181,7 +183,6 @@ namespace TaskSystem {
 					// Taks queue top has changed while waiting for Task PQ Write Lock
 					if (taskPQ.empty() || taskPQ.top().get() != context.get()) {
 						logThread("Task Queue is empty or top has changed. Unlocking PQ Write Lock.", tid);
-
 						continue;
 					}
 
@@ -197,7 +198,7 @@ namespace TaskSystem {
 				
 				// Task has completed -> only one worker thread can enter here only once per task.
 
-				// TODO: Erasing tasks from taskmap causes 
+				// TODO: Erasing tasks from taskmap causes crash
 				/*logThread("##############Remove from TASKMAP: Trying to lock Task Map Write Lock", tid);
 				{
 					std::unique_lock<std::shared_mutex> TaskMapWriteLock(TaskMapMutex);

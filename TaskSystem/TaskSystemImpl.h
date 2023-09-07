@@ -9,9 +9,10 @@
 #include <functional>
 #include <atomic>
 #include <shared_mutex>
-#include<queue>
+#include <queue>
 #include <cassert>
-#include<iostream>
+#include <iostream>
+
 namespace TaskSystem {
 
 	/// <summary>
@@ -35,7 +36,14 @@ namespace TaskSystem {
 		TaskSystemExecutorImpl& operator=(const TaskSystemExecutor&) = delete;
 
 		static void Init(int threadCount) {
-			delete TaskSystemExecutor::self;
+			static std::mutex init_mutex;
+			if (TaskSystemExecutor::self) {
+				return;
+			}
+			std::lock_guard<std::mutex> TSInitLock(init_mutex);
+			if (TaskSystemExecutor::self) {
+				return;
+			}
 			TaskSystemExecutor::self = new TaskSystemExecutorImpl(threadCount);
 		}
 
@@ -95,7 +103,7 @@ namespace TaskSystem {
 			/// </summary>
 			std::condition_variable cv;
 
-			int priority;
+			int priority = 0;
 
 			struct CMP_priority {
 				bool operator() (const std::shared_ptr<TaskContext>& lhs, const std::shared_ptr<TaskContext>& rhs) const
@@ -120,10 +128,6 @@ namespace TaskSystem {
 			virtual std::string GetExecutorName() const { return "callbackExecutor"; }
 		};
 
-
-		/// <summary>
-		/// Each task has a corresponding task context.
-		/// </summary>
 		int threadCount;
 
 		/// <summary>
@@ -161,6 +165,7 @@ namespace TaskSystem {
 		/*std::atomic<int> threadState = 0;
 		std::condition_variable */
 
+		std::shared_ptr<TaskContext*> cur_executed_task;
 
 		friend struct CallBackExecutor;
 	};

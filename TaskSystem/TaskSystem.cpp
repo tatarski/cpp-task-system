@@ -21,7 +21,7 @@ namespace TaskSystem {
 
 	TaskSystemExecutor& TaskSystemExecutor::GetInstance() {
 		if (!self) {
-			throw std::exception("Task System Is Not Instanced");
+			throw std::exception("Task System Is Not Initialized");
 		}
 		return *self;
 	}
