@@ -67,7 +67,7 @@ void testPrinter() {
     TaskSystemExecutor::TaskID id1 = ts.ScheduleTask(std::move(p1), 10);
 
     // Wait some time and schedule higher priority task - task system starts executing it.
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     TaskSystemExecutor::TaskID id2 = ts.ScheduleTask(std::move(p2), 20);
 
     // Register task 2 callbacks
@@ -100,7 +100,7 @@ void testPrinter() {
 
 int main(int argc, char *argv[]) {
     // Init task system implementation
-    TaskSystemExecutorImpl::Init(1);
+    TaskSystemExecutorImpl::Init(4);
 
     testPrinter();
 

@@ -25,6 +25,8 @@ namespace TaskSystem {
 			// Load callback executor shared library
 			TS_LOAD_LIBARY("CallbackExecutor", *this);
 
+			setCurExecutedTask(nullptr);
+
 			for (int i = 0; i < threadCount; i++) {
 				threads.push_back(std::thread(&TaskSystemExecutorImpl::workerFun, this, i));
 			}
@@ -121,7 +123,7 @@ namespace TaskSystem {
 
 			virtual std::optional<void*> GetAnyParam(const std::string& name) const {
 				if (name == "Context") {
-					return (void*) &(*tc);
+					return (void*)&(*tc);
 				}
 				return std::nullopt;
 			}
@@ -146,10 +148,14 @@ namespace TaskSystem {
 		IdGenerator idGen;
 
 		/// <summary>
+		/// Pointer to current task that should be executed.
+		/// </summary>
+		std::atomic<TaskContext*> cur_executed_task;
+		/// <summary>
 		// Task priority queue. Provide access to task with highest priority.
 		/// </summary>
 		std::priority_queue<std::shared_ptr<TaskContext>, std::vector<std::shared_ptr<TaskContext>>, TaskContext::CMP_priority> taskPQ;
-		
+
 		/// <summary>
 		/// Mutex for Task Priority queue.
 		/// </summary>
@@ -159,14 +165,14 @@ namespace TaskSystem {
 
 		std::atomic<bool> terminateThreads = false;
 
-		// State 0 = work
-		// State 1 = sleep
-		// State 3 = terminate
-		/*std::atomic<int> threadState = 0;
-		std::condition_variable */
-
-		std::shared_ptr<TaskContext*> cur_executed_task;
-
+		std::condition_variable noWorkCV;
+		std::mutex noWorkMutex;
+		std::atomic<bool> haveWork = false;
+		void setCurExecutedTask(TaskContext* task) {
+			haveWork = task?true:false;
+			this->cur_executed_task = task;
+			noWorkCV.notify_all();
+		}
 		friend struct CallBackExecutor;
 	};
 };

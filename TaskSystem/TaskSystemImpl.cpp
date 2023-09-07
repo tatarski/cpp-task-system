@@ -48,13 +48,17 @@ namespace TaskSystem {
 			logThread("Unlocking Task Map Write Lock.", 999999);
 		}
 		
-		// Insert task context into task priority queue. Set cur_executed_task
+		// Insert task context into task priority queue. Set cur_executed_task to be new highest priority task.
 		{
 			logThread("Trying to lock Task PQ Write Lock.", 999999);
 			std::unique_lock<std::shared_mutex> taskPQWriteLock(taskPQMutex);
 			logThread("Acquired Task PQ Write Lock. Insert Task Context to Task PQ.", 999999);
 
 			taskPQ.push(tc);
+
+			setCurExecutedTask(taskPQ.top().get());
+			//cur_executed_task = taskPQ.top().get();
+			
 			logThread("Unlocking Task PQ Write Lock.", 999999);
 		}
 		logThread("End of task schedule", 999999);
@@ -113,6 +117,10 @@ namespace TaskSystem {
 
 		terminateThreads = true;
 
+		// Wake workers threads up so they can terminate.
+		haveWork = true;
+		noWorkCV.notify_all();
+
 		// Threads should join eventually.
 		for (std::thread& t : threads) {
 			t.join();
@@ -141,6 +149,7 @@ namespace TaskSystem {
 
 			// TODO: signal in some way when a higher priority task is pushed
 			// TODO: If higher priority task is not present - do not get new task from priority queue 
+#ifdef QWERTYUIOPQWERTYUIOPQWERTYUIOP
 			{
 
 				logThread("Try acquire PQ Read Lock", tid);
@@ -165,15 +174,35 @@ namespace TaskSystem {
 				context = taskPQ.top();
 				logThread("Unlock PQ Read Lock.", tid);
 			}
+#endif
 
+			TaskContext* context_ = cur_executed_task;
+
+			if (!context_) {
+				logThread("Cur_executed_task is nullptr. Waiting and continuing.", tid);
+
+				std::unique_lock<std::mutex> NoWorkLock(noWorkMutex);
+
+				std::atomic<bool>& haveWork = this->haveWork;
+				noWorkCV.wait(NoWorkLock, [&haveWork] {
+					return haveWork.load();
+				});
+
+				continue;
+			}
 			// Execute step from current task context
-			exec_status = context->exec->ExecuteStep(tid, threadCount);
+			exec_status = context_->exec->ExecuteStep(tid, threadCount);
 			
 			if (exec_status == Executor::ExecStatus::ES_Stop) {
+
+				if (context_ != cur_executed_task) {
+					continue;
+				}
 				// Task has completed and should be removed from priority queue and task map
-				
+				// Also cur_executed_task should be changed
 				// Remove task from task priority queue
 				// Set cur_executed task to be priority queue top or nullptr
+				
 				{
 					logThread("Task has completed. Trying to lock PQ Write Lock.", tid);
 					std::unique_lock<std::shared_mutex> pqWriteLock(taskPQMutex);
@@ -181,19 +210,35 @@ namespace TaskSystem {
 
 					// Task queue has been emptied while waiting for Task PQ Write Lock or 
 					// Taks queue top has changed while waiting for Task PQ Write Lock
-					if (taskPQ.empty() || taskPQ.top().get() != context.get()) {
-						logThread("Task Queue is empty or top has changed. Unlocking PQ Write Lock.", tid);
+					//if (taskPQ.empty() || taskPQ.top().get() != context.get()) {
+					//	logThread("Task Queue is empty or top has changed. Unlocking PQ Write Lock.", tid);
+					//	continue;
+					//}
+
+					//assert(taskPQ.top() == context);
+
+					if (taskPQ.empty()) {
+						logThread("Task Queue is empty. Continuing.", tid);
 						continue;
 					}
-
-					assert(taskPQ.top() == context);
 					logThread("Removing top from Task PQ", tid);
 
 					taskPQ.pop();
 
+					if (taskPQ.empty()) {
+						logThread("Task Queue is empty. Continuing.", tid);
+
+						setCurExecutedTask(nullptr);
+					}
+					else {
+						setCurExecutedTask(taskPQ.top().get());
+						//cur_executed_task = taskPQ.top().get();
+					}
+
+					context_->taskComplete->store(true);
+
 					logThread("Unlocking Task PQ lock", tid);
 
-					context->taskComplete->store(true);
 				}
 				
 				// Task has completed -> only one worker thread can enter here only once per task.
@@ -210,23 +255,32 @@ namespace TaskSystem {
 				};*/
 
 				
-				if (context->onCompleteCallbacks.size() != 0) {
+
+				if (context_->onCompleteCallbacks.size() != 0) {
 					// Schedule callbacks task. Callbacks task should set callbacksComplete on finished task once finished.
 
 					logThread("Scheduling callbacks", tid);
 
-					std::unique_ptr<Task> cb_task = std::make_unique<CallbackTaskParams>(context);
+					// Get shared pointer to TaskContext from taskMap and TaskContext id
+					std::shared_ptr<TaskContext> context_shared_ptr;
+					{
+						std::shared_lock<std::shared_mutex> TaskMapReadLock(TaskMapMutex);
+						context_shared_ptr = idTaskMap[context_->id];
+					}
 
-					TaskSystemExecutor::TaskID callback_task_id = ScheduleTask(std::move(cb_task), context->priority + 1);
+
+					std::unique_ptr<Task> cb_task = std::make_unique<CallbackTaskParams>(context_shared_ptr);
+
+					TaskSystemExecutor::TaskID callback_task_id = ScheduleTask(std::move(cb_task), context_->priority + 1);
 				}
 				else {
 					logThread("Nothing to schedule", tid);
 
 					/// No callbacks to schedule. Set callbacksComplate to true.
 					{
-						std::lock_guard<std::mutex> callbackWaitLock(context->waitMutex);
+						std::lock_guard<std::mutex> callbackWaitLock(context_->waitMutex);
 
-						context->callbacksComplete->store(true);
+						context_->callbacksComplete->store(true);
 					}
 				}
 				continue;

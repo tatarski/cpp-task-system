@@ -22,7 +22,7 @@ namespace TaskSystem {
 		std::unique_lock<std::mutex> printLock(m);
 		std::cout << "I :" << tid << " " << msg << std::endl;
 	};
-#define LOGGING 1
+//#define LOGGING 1
 #ifdef LOGGING
 #define logThread(msg, tid) logThread_(msg, tid);
 #else
